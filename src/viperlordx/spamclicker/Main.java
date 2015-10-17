@@ -20,6 +20,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Arrays;
@@ -60,7 +61,7 @@ public class Main implements NativeKeyListener {
 	volatile static boolean hold = false;
 	static JLabel label = new JLabel();
 	static float VERSION = 0.0f;
-	public static void main(String args[]) throws AWTException, NativeHookException, IOException, InterruptedException, ParseException, URISyntaxException {
+	public static boolean update() throws IOException, InterruptedException, ParseException {
 		{
 			File file = new File("version");
 			file.createNewFile();
@@ -75,7 +76,6 @@ public class Main implements NativeKeyListener {
 			reader.close();
 			System.out.println(VERSION);
 		}
-		try {
 			Downloader updater = new Downloader();
 			updater.download(new URL("https://api.github.com/repos/ViperLordX/Spamclicker/releases"), new File("temp.randomextension"));
 			updater.waitForEnd();
@@ -91,42 +91,140 @@ public class Main implements NativeKeyListener {
 				String sversion = (String) object.get("tag_name");
 				float dversion = Float.parseFloat(sversion);
 				if (dversion > VERSION) {
-					VERSION = dversion;
-					File version = new File("version");
-					version.createNewFile();
-					FileWriter vwriter = new FileWriter(version);
-					vwriter.write(String.valueOf(VERSION));
-					vwriter.close();
-					String path = System.getProperty("java.class.path");
-					JSONArray assets = (JSONArray) object.get("assets");
-					JSONObject properties = (JSONObject) assets.get(0);
-					String url = (String) properties.get("browser_download_url");
-					File local = new File(path);
-					if (local.isFile()) {
-						updater.download(new URL(url), local);
-						updater.waitForEnd();
-						JFrame updated = new JFrame();
-						updated.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-						updated.setVisible(true);
-						updated.setTitle("Updated");
-						updated.setSize(300, 100);
-						JPanel upanel = new JPanel();
-						upanel.setSize(200, 100);
-						upanel.setVisible(true);
-						updated.setLayout(null);
-						upanel.setLayout(null);
-						JLabel info = new JLabel();
-						info.setVisible(true);
-						info.setSize(200, 50);
-						info.setText("Auto-updated, please restart.");
-						upanel.add(info);
-						updated.add(upanel);
-						return;
+					JFrame frame1 = new JFrame();
+					JPanel panel1 = new JPanel();
+					JLabel label1 = new JLabel();
+					JButton button1 = new JButton();
+					{
+						frame1.setVisible(true);
+						frame1.setBounds(0, 0, 300, 100);
+						frame1.setTitle("Updater");
+						frame1.setLayout(null);
+						frame1.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+					}
+					{
+						panel1.setVisible(true);
+						panel1.setLayout(null);
+						panel1.setBounds(0, 0, 200, 200);
+						frame1.add(panel1);
+					}
+					{
+						label1.setText("Close to cancel update");
+						label1.setBounds(0, 0, 200, 20);
+						panel1.add(label1);
+					}
+					{
+						button1.setText("Update");
+						button1.setBounds(0, 20, 100, 50);
+						panel1.add(button1);
+						button1.addMouseListener(new MouseListener() {
+							@Override
+							public void mouseClicked(MouseEvent arg0) {
+								VERSION = dversion;
+								File version = new File("version");
+								try {
+									version.createNewFile();
+									FileWriter vwriter = new FileWriter(version);
+									vwriter.write(String.valueOf(VERSION));
+									vwriter.close();
+								} catch (IOException e) {
+									e.printStackTrace();
+								}
+								String path = System.getProperty("java.class.path");
+								JSONArray assets = (JSONArray) object.get("assets");
+								JSONObject properties = (JSONObject) assets.get(0);
+								String url = (String) properties.get("browser_download_url");
+								File local = new File(path);
+								if (local.isFile()) {
+									try {
+										updater.download(new URL(url), local);
+										updater.waitForEnd();
+									} catch (MalformedURLException e) {
+										e.printStackTrace();
+									} catch (InterruptedException e) {
+										e.printStackTrace();
+									}
+									JFrame updated = new JFrame();
+									updated.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+									updated.setVisible(true);
+									updated.setTitle("Updated");
+									updated.setSize(300, 100);
+									JPanel upanel = new JPanel();
+									upanel.setSize(200, 100);
+									upanel.setVisible(true);
+									updated.setLayout(null);
+									upanel.setLayout(null);
+									JLabel info = new JLabel();
+									info.setVisible(true);
+									info.setSize(200, 50);
+									info.setText("Auto-updated, please restart.");
+									upanel.add(info);
+									updated.add(upanel);
+									indicator.setVisible(false);
+								}
+							}
+							@Override
+							public void mouseEntered(MouseEvent arg0) {
+							}
+							@Override
+							public void mouseExited(MouseEvent arg0) {
+							}
+							@Override
+							public void mousePressed(MouseEvent arg0) {
+							}
+							@Override
+							public void mouseReleased(MouseEvent arg0) {
+							}
+						});
+						frame1.addWindowListener(new WindowListener() {
+
+							@Override
+							public void windowActivated(WindowEvent arg0) {
+							}
+
+							@Override
+							public void windowClosed(WindowEvent arg0) {
+								String[] stuff = {"-u"};
+								try {
+									main(stuff);
+								} catch (AWTException | NativeHookException | IOException | InterruptedException
+										| ParseException | URISyntaxException e) {
+									e.printStackTrace();
+								}
+							}
+
+							@Override
+							public void windowClosing(WindowEvent arg0) {
+							}
+
+							@Override
+							public void windowDeactivated(WindowEvent arg0) {	
+							}
+
+							@Override
+							public void windowDeiconified(WindowEvent arg0) {
+							}
+
+							@Override
+							public void windowIconified(WindowEvent arg0) {
+							}
+
+							@Override
+							public void windowOpened(WindowEvent arg0) {
+							}
+							
+						});
+						return true;
 					}
 				}
 			}
-		} catch (Exception e) {
-			e.printStackTrace();
+			return false;
+		}
+	public static void main(String args[]) throws AWTException, NativeHookException, IOException, InterruptedException, ParseException, URISyntaxException {
+		if (args.length == 0) {
+			if (update()) {
+				return;
+			}
 		}
 		load();
 		JPanel indpanel = new JPanel();

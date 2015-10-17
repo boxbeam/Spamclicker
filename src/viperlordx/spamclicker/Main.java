@@ -61,21 +61,24 @@ public class Main implements NativeKeyListener {
 	volatile static boolean hold = false;
 	static JLabel label = new JLabel();
 	static float VERSION = 0.0f;
+	static int[] control = {KeyEvent.VK_ALT, KeyEvent.VK_SHIFT, KeyEvent.VK_CONTROL};
+	static int lmodifier = 0;
+	static int rmodifier = 0;
 	public static boolean update() throws IOException, InterruptedException, ParseException {
-		{
-			File file = new File("version");
-			file.createNewFile();
-			FileReader read = new FileReader(file);
-			BufferedReader reader = new BufferedReader(read);
-			String blah = "";
-			if ((blah = reader.readLine()) != null) {
-				VERSION = Float.parseFloat(blah);
-			} else {
-				VERSION = -10.0f;
+			{
+				File file = new File("version");
+				file.createNewFile();
+				FileReader read = new FileReader(file);
+				BufferedReader reader = new BufferedReader(read);
+				String blah = "";
+				if ((blah = reader.readLine()) != null) {
+					VERSION = Float.parseFloat(blah);
+				} else {
+					VERSION = -10.0f;
+				}
+				reader.close();
+				System.out.println(VERSION);
 			}
-			reader.close();
-			System.out.println(VERSION);
-		}
 			Downloader updater = new Downloader();
 			updater.download(new URL("https://api.github.com/repos/ViperLordX/Spamclicker/releases"), new File("temp.randomextension"));
 			updater.waitForEnd();
@@ -331,7 +334,7 @@ public class Main implements NativeKeyListener {
 		});
 		panel.add(delete);
 		frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-		label.setText("Press " + NativeKeyEvent.getKeyText(leftbutton) + " for left mouse, " + NativeKeyEvent.getKeyText(rightbutton) + " for right.");
+		label.setText("Check the configuration for settings");
 		JButton setsetup = new JButton();
 		setsetup.setVisible(true);
 		setsetup.setBounds(0, 20, 100, 20);
@@ -624,7 +627,7 @@ public class Main implements NativeKeyListener {
 					rightbind.setBounds(0, 20, 400, 20);
 					rightbind.setVisible(true);
 					text = NativeKeyEvent.getKeyText(rightbutton);
-					rightbind.setText("Right mouse - " + text);
+					rightbind.setText("Right mouse - " + KeyEvent.getKeyModifiersText(rmodifier) + " " + text);
 					rpanel.add(rightbind);
 					leftbind.addMouseListener(new MouseListener() {
 						@Override
@@ -633,19 +636,28 @@ public class Main implements NativeKeyListener {
 							leftbind.addKeyListener(new KeyListener() {
 								@Override
 								public void keyPressed(KeyEvent e) {
-									String text = "";
-									try {
-										text = NativeKeyEvent.getKeyText(KeyBridge.getNativeKeyCode(e.getKeyCode()));
-									} catch (AWTException | NativeHookException e2) {
-										e2.printStackTrace();
+									boolean found = false;
+									for (int check : control) {
+										if (check == e.getKeyCode()) {
+											found = true;
+										}
 									}
-									leftbind.setText("Left mouse - " + text);
-									try {
-										leftbutton = KeyBridge.getNativeKeyCode(e.getKeyCode());
-									} catch (AWTException | NativeHookException e1) {
-										e1.printStackTrace();
+									if (!found) {
+										String text = "";
+										try {
+											text = NativeKeyEvent.getKeyText(KeyBridge.getNativeKeyCode(e.getKeyCode()));
+										} catch (AWTException | NativeHookException e2) {
+											e2.printStackTrace();
+										}
+										try {
+											leftbutton = KeyBridge.getNativeKeyCode(e.getKeyCode());
+											lmodifier = e.getModifiers();
+											leftbind.setText("Left mouse - " + KeyEvent.getKeyModifiersText(lmodifier) + " " + text);
+											leftbind.removeKeyListener(this);
+										} catch (AWTException | NativeHookException e1) {
+											e1.printStackTrace();
+										}
 									}
-									label.setText("Press " + NativeKeyEvent.getKeyText(leftbutton) + " for left mouse, " + NativeKeyEvent.getKeyText(rightbutton) + " for right.");
 								}
 								@Override
 								public void keyReleased(KeyEvent arg0) {
@@ -675,19 +687,28 @@ public class Main implements NativeKeyListener {
 							rightbind.addKeyListener(new KeyListener() {
 								@Override
 								public void keyPressed(KeyEvent e) {
-									String text = "";
-									try {
-										text = NativeKeyEvent.getKeyText(KeyBridge.getNativeKeyCode(e.getKeyCode()));
-									} catch (AWTException | NativeHookException e2) {
-										e2.printStackTrace();
+									boolean found = false;
+									for (int check : control) {
+										if (check == e.getKeyCode()) {
+											found = true;
+										}
 									}
-									rightbind.setText("Right mouse - " + text);
-									try {
-										rightbutton = KeyBridge.getNativeKeyCode(e.getKeyCode());
-									} catch (AWTException | NativeHookException e1) {
-										e1.printStackTrace();
+									if (!found) {
+										String text = "";
+										try {
+											text = NativeKeyEvent.getKeyText(KeyBridge.getNativeKeyCode(e.getKeyCode()));
+										} catch (AWTException | NativeHookException e2) {
+											e2.printStackTrace();
+										}
+										rightbind.setText("Right mouse - " + KeyEvent.getKeyModifiersText(rmodifier) + " " + text);
+										rightbind.removeKeyListener(this);
+										try {
+											rightbutton = KeyBridge.getNativeKeyCode(e.getKeyCode());
+											rmodifier = e.getModifiers();
+										} catch (AWTException | NativeHookException e1) {
+											e1.printStackTrace();
+										}
 									}
-									label.setText("Press " + NativeKeyEvent.getKeyText(leftbutton) + " for left mouse, " + NativeKeyEvent.getKeyText(rightbutton) + " for right.");
 								}
 								@Override
 								public void keyReleased(KeyEvent arg0) {
@@ -807,7 +828,8 @@ public class Main implements NativeKeyListener {
 	}
 	@Override
 	public void nativeKeyPressed(NativeKeyEvent e) {
-		if (((Integer)e.getKeyCode()).equals(leftbutton)) {
+		System.out.println(e.getModifiers());
+		if (((Integer)e.getKeyCode()).equals(leftbutton) && e.getModifiers() == lmodifier) {
 			active = !active;
 			if (active) {
 				leftind.setBackground(Color.GREEN);
@@ -815,7 +837,8 @@ public class Main implements NativeKeyListener {
 				leftind.setBackground(Color.RED);
 			}
 		}
-		if (e.getKeyCode() == rightbutton) {
+		System.out.println(rmodifier);
+		if (e.getKeyCode() == rightbutton && e.getModifiers() == rmodifier) {
 			active2 = !active2;
 			if (active2) {
 				rightind.setBackground(Color.GREEN);
@@ -852,7 +875,11 @@ public class Main implements NativeKeyListener {
 			Matcher leftmatcher = findleft.matcher(text);
 			if (leftmatcher.find()) {
 				try {
-					leftbutton = Integer.parseInt(leftmatcher.group(1));
+					String[] group = leftmatcher.group(1).split("\\|");
+					leftbutton = Integer.parseInt(group[0]);
+					if (group.length > 1) {
+						lmodifier = Integer.parseInt(group[1]);
+					}
 				} catch (NumberFormatException e) {
 				}
 			}
@@ -860,7 +887,11 @@ public class Main implements NativeKeyListener {
 			Matcher rightmatcher = findright.matcher(text);
 			if (rightmatcher.find()) {
 				try {
-					rightbutton = Integer.parseInt(rightmatcher.group(1));
+					String[] group = rightmatcher.group(1).split("\\|");
+					rightbutton = Integer.parseInt(group[0]);
+					if (group.length > 1) {
+						rmodifier = Integer.parseInt(group[1]);
+					}
 				} catch (NumberFormatException e) {
 				}
 			}
@@ -896,14 +927,13 @@ public class Main implements NativeKeyListener {
 				indicator.setVisible(false);
 			}
 			reader.close();
-			label.setText("Press " + NativeKeyEvent.getKeyText(leftbutton) + " for left mouse, " + NativeKeyEvent.getKeyText(rightbutton) + " for right.");
 		}
 		config.createNewFile();
 	}
 	public static void save() {
 		try {
 			FileWriter writer = new FileWriter(config);
-			writer.write("[L:" + leftbutton + "][R:" + rightbutton + "][I:" + indicatorpos + "][S:" + delay + "][H:" + hold + "][W:" + wait + "]");
+			writer.write("[L:" + leftbutton + "|" + lmodifier + "][R:" + rightbutton + "|" + rmodifier + "][I:" + indicatorpos + "][S:" + delay + "][H:" + hold + "][W:" + wait + "]");
 			writer.close();
 			File version = new File("version");
 			version.createNewFile();

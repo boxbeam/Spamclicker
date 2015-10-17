@@ -378,6 +378,7 @@ public class Main implements NativeKeyListener {
 									@Override
 									public void mouseClicked(MouseEvent e) {
 										save();
+										button.setText(button.getText().replaceAll("^SELECTED - ", ""));
 										config = new File("setups/" + button.getText());
 										try {
 											load();

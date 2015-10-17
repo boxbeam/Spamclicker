@@ -25,13 +25,14 @@ public class KeyBridge {
 			public void nativeKeyTyped(NativeKeyEvent arg0) {
 			}
 		};
-		GlobalScreen.registerNativeHook();
+		if (!GlobalScreen.isNativeHookRegistered()) {
+			GlobalScreen.registerNativeHook();
+		}
 		LogManager.getLogManager().reset();
 		GlobalScreen.addNativeKeyListener(listener);
 		Robot robot = new Robot();
 		robot.keyRelease(keycode);
 		GlobalScreen.removeNativeKeyListener(listener);
-		GlobalScreen.unregisterNativeHook();
 		return output;
 	}
 }

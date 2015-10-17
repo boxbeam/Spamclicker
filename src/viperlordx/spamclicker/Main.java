@@ -2,6 +2,7 @@ package viperlordx.spamclicker;
 
 import java.awt.AWTException;
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Insets;
@@ -19,6 +20,10 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.util.Arrays;
+import java.util.List;
 import java.util.logging.LogManager;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -34,9 +39,13 @@ import org.jnativehook.GlobalScreen;
 import org.jnativehook.NativeHookException;
 import org.jnativehook.keyboard.NativeKeyEvent;
 import org.jnativehook.keyboard.NativeKeyListener;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 
 public class Main implements NativeKeyListener {
-	static File config = new File("config.txt");
+	static File config = new File("setups/default");
 	public static boolean active = false;
 	public static boolean active2 = false;
 	public Thread clicker;
@@ -49,64 +58,77 @@ public class Main implements NativeKeyListener {
 	volatile static int delay = 10;
 	volatile static int wait = 10;
 	volatile static boolean hold = false;
-	public static void main(String args[]) throws AWTException, NativeHookException, IOException {
-		if (config.exists()) {
-			FileReader read = new FileReader(config);
+	static JLabel label = new JLabel();
+	static float VERSION = 0.0f;
+	public static void main(String args[]) throws AWTException, NativeHookException, IOException, InterruptedException, ParseException, URISyntaxException {
+		{
+			File file = new File("version");
+			file.createNewFile();
+			FileReader read = new FileReader(file);
 			BufferedReader reader = new BufferedReader(read);
-			String text = "";
-			String next = "";
-			while ((next = reader.readLine()) != null) {
-				text = text + next;
+			String blah = "";
+			if ((blah = reader.readLine()) != null) {
+				VERSION = Float.parseFloat(blah);
+			} else {
+				VERSION = -10.0f;
 			}
-			Pattern findleft = Pattern.compile("\\[L\\:(.+?)\\]");
-			Matcher leftmatcher = findleft.matcher(text);
-			if (leftmatcher.find()) {
-				try {
-					leftbutton = Integer.parseInt(leftmatcher.group(1));
-				} catch (NumberFormatException e) {
-				}
-			}
-			Pattern findright = Pattern.compile("\\[R\\:(.+?)\\]");
-			Matcher rightmatcher = findright.matcher(text);
-			if (rightmatcher.find()) {
-				try {
-					rightbutton = Integer.parseInt(rightmatcher.group(1));
-				} catch (NumberFormatException e) {
-				}
-			}
-			{
-				Pattern pattern = Pattern.compile("\\[I\\:(.+?)\\]");
-				Matcher matcher = pattern.matcher(text);
-				if (matcher.find()) {
-					indicatorpos = Integer.parseInt(matcher.group(1));
-				}
-			}
-			{
-				Pattern pattern = Pattern.compile("\\[S\\:(.+?)\\]");
-				Matcher matcher = pattern.matcher(text);
-				if (matcher.find()) {
-					delay = Integer.parseInt(matcher.group(1));
-				}
-			}
-			{
-				Pattern pattern = Pattern.compile("\\[H\\:(.+?)\\]");
-				Matcher matcher = pattern.matcher(text);
-				if (matcher.find()) {
-					hold = Boolean.parseBoolean(matcher.group(1));
-				}
-			}
-			{
-				Pattern pattern = Pattern.compile("\\[W\\:(.+?)\\]");
-				Matcher matcher = pattern.matcher(text);
-				if (matcher.find()) {
-					wait = Integer.parseInt(matcher.group(1));
-				}
-			}
-			if (indicatorpos == 0) {
-				indicator.setVisible(false);
-			}
-			read.close();
+			reader.close();
+			System.out.println(VERSION);
 		}
+		try {
+			Downloader updater = new Downloader();
+			updater.download(new URL("https://api.github.com/repos/ViperLordX/Spamclicker/releases"), new File("temp.randomextension"));
+			updater.waitForEnd();
+			File versions = new File("temp.randomextension");
+			FileReader read = new FileReader(versions);
+			BufferedReader reader = new BufferedReader(read);
+			String json = reader.readLine();
+			reader.close();
+			versions.delete();
+			JSONArray jversions = (JSONArray) new JSONParser().parse(json);
+			for (Object obj : jversions) {
+				JSONObject object = (JSONObject) obj;
+				String sversion = (String) object.get("tag_name");
+				float dversion = Float.parseFloat(sversion);
+				if (dversion > VERSION) {
+					VERSION = dversion;
+					File version = new File("version");
+					version.createNewFile();
+					FileWriter vwriter = new FileWriter(version);
+					vwriter.write(String.valueOf(VERSION));
+					vwriter.close();
+					String path = System.getProperty("java.class.path");
+					JSONArray assets = (JSONArray) object.get("assets");
+					JSONObject properties = (JSONObject) assets.get(0);
+					String url = (String) properties.get("browser_download_url");
+					File local = new File(path);
+					if (local.isFile()) {
+						updater.download(new URL(url), local);
+						updater.waitForEnd();
+						JFrame updated = new JFrame();
+						updated.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+						updated.setVisible(true);
+						updated.setTitle("Updated");
+						updated.setSize(300, 100);
+						JPanel upanel = new JPanel();
+						upanel.setSize(200, 100);
+						upanel.setVisible(true);
+						updated.setLayout(null);
+						upanel.setLayout(null);
+						JLabel info = new JLabel();
+						info.setVisible(true);
+						info.setSize(200, 50);
+						info.setText("Auto-updated, please restart.");
+						upanel.add(info);
+						updated.add(upanel);
+						return;
+					}
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		load();
 		JPanel indpanel = new JPanel();
 		indpanel.setVisible(true);
 		indpanel.setBounds(0, 0, 80, 40);
@@ -142,7 +164,6 @@ public class Main implements NativeKeyListener {
 		}
 		indicator.setAlwaysOnTop(true);
 		indicator.setVisible(true);
-		config.createNewFile();
 		LogManager.getLogManager().reset();
 		JFrame frame = new JFrame();
 		frame.addWindowListener(new WindowListener() {
@@ -151,17 +172,11 @@ public class Main implements NativeKeyListener {
 			}
 			@Override
 			public void windowClosed(WindowEvent arg0) {
-				try {
-					FileWriter writer = new FileWriter(config);
-					writer.write("[L:" + leftbutton + "][R:" + rightbutton + "][I:" + indicatorpos + "][S:" + delay + "][H:" + hold + "][W:" + wait + "]");
-					writer.close();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-				System.exit(0);
 			}
 			@Override
 			public void windowClosing(WindowEvent arg0) {
+				save();
+				System.exit(0);
 			}
 			@Override
 			public void windowDeactivated(WindowEvent arg0) {
@@ -178,16 +193,163 @@ public class Main implements NativeKeyListener {
 		});
 		frame.setVisible(true);
 		frame.setBounds(0, 0, 300, 100);
-		frame.setTitle("Spamclicker");
+		frame.setTitle("Spamclicker " + VERSION);
 		frame.setAlwaysOnTop(false);
 		JPanel panel = new JPanel();
 		frame.add(panel);
 		frame.setLayout(null);
 		panel.setLayout(null);
 		frame.setFocusable(true);
+		JButton delete = new JButton();
+		delete.setText("Delete");
+		delete.setBounds(130, 20, 100, 20);
+		delete.setVisible(true);
+		delete.addMouseListener(new MouseListener() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				if (e.getButton() == 1 && !config.getName().equals("default")) {
+					System.gc();
+					config.delete();
+					config = new File("setups/default");
+					try {
+						load();
+					} catch (IOException | NativeHookException e1) {
+						e1.printStackTrace();
+					}
+				}
+			}
+			@Override
+			public void mouseEntered(MouseEvent arg0) {
+			}
+			@Override
+			public void mouseExited(MouseEvent arg0) {
+			}
+			@Override
+			public void mousePressed(MouseEvent arg0) {
+			}
+			@Override
+			public void mouseReleased(MouseEvent arg0) {
+			}
+		});
+		panel.add(delete);
 		frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-		JLabel label = new JLabel();
 		label.setText("Press " + NativeKeyEvent.getKeyText(leftbutton) + " for left mouse, " + NativeKeyEvent.getKeyText(rightbutton) + " for right.");
+		JButton setsetup = new JButton();
+		setsetup.setVisible(true);
+		setsetup.setBounds(0, 20, 100, 20);
+		setsetup.setText("Setups");
+		panel.add(setsetup);
+		setsetup.addMouseListener(new MouseListener() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				if (e.getButton() == 1) {
+					JFrame setup = new JFrame();
+					setup.setLayout(null);
+					setup.setResizable(false);
+					setup.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+					JPanel randompanel = new JPanel();
+					randompanel.setLayout(null);
+					setup.setSize(500,500);
+					setup.setTitle("Setups");
+					setup.setVisible(true);
+					randompanel.setBounds(0, 0, 500, 500);
+					setup.add(randompanel);
+					File setups = new File("setups");
+					setups.mkdirs();
+					setups.getAbsoluteFile();
+					Runnable refresh = new Runnable() {
+						@Override
+						public void run() {
+							randompanel.repaint();
+							int position = 1;
+							List<File> files = Arrays.asList(setups.listFiles());
+							files = Arrays.asList(setups.listFiles());
+							for (Component i :randompanel.getComponents()) {
+								randompanel.remove(i);
+							}
+							for (File file : files) {
+								String name = file.getName();
+								JButton button = new JButton();
+								button.setBounds(0, position * 20, 500, 20);
+								button.setText(name);
+								if (config.getName().equals(name)) {
+									button.setText("SELECTED - " + name);
+								}
+								randompanel.add(button);
+								button.addMouseListener(new MouseListener() {
+									@Override
+									public void mouseClicked(MouseEvent e) {
+										save();
+										config = new File("setups/" + button.getText());
+										try {
+											load();
+										} catch (IOException | NativeHookException e1) {
+											e1.printStackTrace();
+										}
+										setup.dispose();
+									}
+									@Override
+									public void mouseEntered(MouseEvent e) {
+									}
+									@Override
+									public void mouseExited(MouseEvent e) {
+									}
+									@Override
+									public void mousePressed(MouseEvent e) {
+									}
+									@Override
+									public void mouseReleased(MouseEvent e) {
+									}
+								});
+								position++;
+							}
+						}
+					};
+					refresh.run();
+					JTextField add = new JTextField();
+					add.setBounds(0, 0, 200, 20);
+					add.setVisible(true);
+					add.setToolTipText("Add file");
+					KeyListener listener = new KeyListener() {
+						@Override
+						public void keyPressed(KeyEvent arg0) {
+							if (arg0.getKeyCode() == KeyEvent.VK_ENTER) {
+								String name = add.getText();
+								add.setText("");
+								File file = new File("setups/" + name);
+								try {
+									file.createNewFile();
+								} catch (IOException e) {
+									e.printStackTrace();
+								}
+								refresh.run();
+								randompanel.add(add);
+							}
+						}
+						@Override
+						public void keyReleased(KeyEvent arg0) {
+						}
+						@Override
+						public void keyTyped(KeyEvent arg0) {
+						}
+					};
+					add.addKeyListener(listener);
+					randompanel.add(add);
+				}
+			}
+			@Override
+			public void mouseEntered(MouseEvent e) {
+			}
+			@Override
+			public void mouseExited(MouseEvent e) {
+			}
+			@Override
+			public void mousePressed(MouseEvent e) {
+			}
+			@Override
+			public void mouseReleased(MouseEvent e) {
+			}
+		});
 		panel.add(label);
 		JButton button = new JButton();
 		button.setText("Configure");
@@ -546,7 +708,7 @@ public class Main implements NativeKeyListener {
 	}
 	@Override
 	public void nativeKeyPressed(NativeKeyEvent e) {
-		if (e.getKeyCode() == leftbutton) {
+		if (((Integer)e.getKeyCode()).equals(leftbutton)) {
 			active = !active;
 			if (active) {
 				leftind.setBackground(Color.GREEN);
@@ -568,5 +730,89 @@ public class Main implements NativeKeyListener {
 	}
 	@Override
 	public void nativeKeyTyped(NativeKeyEvent arg0) {
+	}
+	public static void load() throws IOException, NativeHookException {
+		config.getParentFile().mkdirs();
+		active = false;
+		active2 = false;
+		leftbutton = NativeKeyEvent.VC_F11;
+		rightbutton = NativeKeyEvent.VC_F12;
+		indicatorpos = 0;
+		delay = 10;
+		wait = 10;
+		hold = false;
+		if (config.exists()) {
+			FileReader read = new FileReader(config);
+			BufferedReader reader = new BufferedReader(read);
+			String text = "";
+			String next = "";
+			while ((next = reader.readLine()) != null) {
+				text = text + next;
+			}
+			Pattern findleft = Pattern.compile("\\[L\\:(.+?)\\]");
+			Matcher leftmatcher = findleft.matcher(text);
+			if (leftmatcher.find()) {
+				try {
+					leftbutton = Integer.parseInt(leftmatcher.group(1));
+				} catch (NumberFormatException e) {
+				}
+			}
+			Pattern findright = Pattern.compile("\\[R\\:(.+?)\\]");
+			Matcher rightmatcher = findright.matcher(text);
+			if (rightmatcher.find()) {
+				try {
+					rightbutton = Integer.parseInt(rightmatcher.group(1));
+				} catch (NumberFormatException e) {
+				}
+			}
+			{
+				Pattern pattern = Pattern.compile("\\[I\\:(.+?)\\]");
+				Matcher matcher = pattern.matcher(text);
+				if (matcher.find()) {
+					indicatorpos = Integer.parseInt(matcher.group(1));
+				}
+			}
+			{
+				Pattern pattern = Pattern.compile("\\[S\\:(.+?)\\]");
+				Matcher matcher = pattern.matcher(text);
+				if (matcher.find()) {
+					delay = Integer.parseInt(matcher.group(1));
+				}
+			}
+			{
+				Pattern pattern = Pattern.compile("\\[H\\:(.+?)\\]");
+				Matcher matcher = pattern.matcher(text);
+				if (matcher.find()) {
+					hold = Boolean.parseBoolean(matcher.group(1));
+				}
+			}
+			{
+				Pattern pattern = Pattern.compile("\\[W\\:(.+?)\\]");
+				Matcher matcher = pattern.matcher(text);
+				if (matcher.find()) {
+					wait = Integer.parseInt(matcher.group(1));
+				}
+			}
+			if (indicatorpos == 0) {
+				indicator.setVisible(false);
+			}
+			reader.close();
+			label.setText("Press " + NativeKeyEvent.getKeyText(leftbutton) + " for left mouse, " + NativeKeyEvent.getKeyText(rightbutton) + " for right.");
+		}
+		config.createNewFile();
+	}
+	public static void save() {
+		try {
+			FileWriter writer = new FileWriter(config);
+			writer.write("[L:" + leftbutton + "][R:" + rightbutton + "][I:" + indicatorpos + "][S:" + delay + "][H:" + hold + "][W:" + wait + "]");
+			writer.close();
+			File version = new File("version");
+			version.createNewFile();
+			FileWriter vwriter = new FileWriter(version);
+			vwriter.write(String.valueOf(VERSION));
+			vwriter.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 }

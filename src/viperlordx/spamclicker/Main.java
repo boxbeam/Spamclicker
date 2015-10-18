@@ -700,11 +700,11 @@ public class Main implements NativeKeyListener {
 										} catch (AWTException | NativeHookException e2) {
 											e2.printStackTrace();
 										}
-										rightbind.setText("Right mouse - " + KeyEvent.getKeyModifiersText(rmodifier) + " " + text);
-										rightbind.removeKeyListener(this);
 										try {
 											rightbutton = KeyBridge.getNativeKeyCode(e.getKeyCode());
 											rmodifier = e.getModifiers();
+											rightbind.setText("Right mouse - " + KeyEvent.getKeyModifiersText(rmodifier) + " " + text);
+											rightbind.removeKeyListener(this);
 										} catch (AWTException | NativeHookException e1) {
 											e1.printStackTrace();
 										}

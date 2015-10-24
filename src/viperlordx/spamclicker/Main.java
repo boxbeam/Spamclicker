@@ -35,6 +35,8 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.JWindow;
+import javax.swing.UIManager;
+import javax.swing.UnsupportedLookAndFeelException;
 
 import org.jnativehook.GlobalScreen;
 import org.jnativehook.NativeHookException;
@@ -191,7 +193,7 @@ public class Main implements NativeKeyListener {
 								try {
 									main(stuff);
 								} catch (AWTException | NativeHookException | IOException | InterruptedException
-										| ParseException | URISyntaxException e) {
+										| ParseException | URISyntaxException | ClassNotFoundException | InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException e) {
 									e.printStackTrace();
 								}
 							}
@@ -223,7 +225,9 @@ public class Main implements NativeKeyListener {
 			}
 			return false;
 		}
-	public static void main(String args[]) throws AWTException, NativeHookException, IOException, InterruptedException, ParseException, URISyntaxException {
+	public static void main(String args[]) throws AWTException, NativeHookException, IOException, InterruptedException, ParseException, URISyntaxException, ClassNotFoundException, InstantiationException, IllegalAccessException, UnsupportedLookAndFeelException {
+		UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
+		JFrame.setDefaultLookAndFeelDecorated(true);
 		if (args.length == 0) {
 			if (update()) {
 				return;

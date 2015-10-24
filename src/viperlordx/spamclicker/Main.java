@@ -624,7 +624,7 @@ public class Main implements NativeKeyListener {
 					leftbind.setBounds(0, 0, 400, 20);
 					leftbind.setVisible(true);
 					String text = NativeKeyEvent.getKeyText(leftbutton);
-					leftbind.setText("Left mouse - " + text);
+					leftbind.setText("Left mouse - " + KeyEvent.getKeyModifiersText(lmodifier) + " " + text);
 					rpanel.add(leftbind);
 					JButton rightbind = new JButton();
 					rightbind.setToolTipText("Left mouse binding");
